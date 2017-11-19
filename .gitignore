@@ -1,0 +1,5 @@
+
+*.log
+__*__
+.DS_Store
+.idea
