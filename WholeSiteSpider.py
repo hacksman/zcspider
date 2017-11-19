@@ -135,7 +135,6 @@ def crawl_infors(url):
             {"flickr": infor_parse(html, "flickr")},
             {"devlantart": infor_parse(html, "devlantart")},
         ],
-
     }
     _update_mongo(infor)
 
@@ -200,6 +199,7 @@ def fetch(url):
     """
     req = requests.get(url, headers=headers)
     html = req.text
+    time.sleep(0.5)
     return html
 
 
@@ -218,6 +218,7 @@ def _check_mongo_url(data):
 
 
 def _update_mongo(data):
+    print(data['username'], ">>>>>>>>>>>>爬取信息成功")
     collection.update({"uid": data['uid']}, {"$set": data})
 
 
