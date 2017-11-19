@@ -3,6 +3,7 @@
 
 import requests
 from settings import *
+from s_settings import *
 from lxml import etree
 import re
 import time
@@ -172,7 +173,7 @@ def send_smtp_friend(sender, receiver, passcode, filename):
     # 创建附件实例
     message = MIMEMultipart()
     message['From']     = Header('解忧杂货铺', 'utf-8')
-    message['To']       = Header('肖大宝', 'utf-8')
+    message['To']       = Header('一个神秘人', 'utf-8')
     message['Subject']  = Header(filename.strip('./').strip('.zip'), 'utf-8')
 
     # 邮件正文
