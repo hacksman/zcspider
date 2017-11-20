@@ -34,11 +34,20 @@ start_url = "http://www.zcool.com.cn/designer"
 recent_viwer_url_base = "http://www.zcool.com.cn/u/%s/recentViewer"
 headers = {'User-Agent': random.choice(UserAgentList)}
 
+num_regx = re.compile('\d+')
+
 rules = {
     # 列表页提取规则
     "list_page": "//div[@class='designer-list-box clear']//div[@class='card-designer-list']/div/a/@href",
     # 用户id提取规则
     "user_id": "//div[@id='body']/@data-id",
+    # 设计师作品数
+    "work_total": "//div[@class='active-filter-down p-relative']/span/text()",
+    # 数据统计
+    "hot": "//a[@title='人气']/text()",
+    "score": "//a[@title='积分']/text()",
+    "fans": "//a[@title='粉丝']/text()",
+    "follow": "//a[@title='关注']/text()",
     # 资料页提取规则
     "user_name": u"//th[text()='用户名']/../td/text()",
     "male": u"//th[text()='性别']/../td/text()",
@@ -61,7 +70,10 @@ rules = {
     "twitter": u"//a[@title='twitter']/@href",
     "flickr": u"//a[@title='flickr']/@href",
     "devlantart": u"//a[@title='devlantart']/@href",
-
+    "personal_website": u"//a[@title='personal_website']/@href",
+    "equipment_2nd": u"//div[@class='center-section-wrap']/div[last()-1]/div[@class='table-wrap']//span/text()",
+    "equipment_1st": u"//div[@class='center-section-wrap']/div[last()]/div[@class='table-wrap']//span/text()",
+    "personal_lable": u"//div[@class='center-section-wrap']/div[last()]/div[@class='table-wrap']//span/text()",
 
 }
 
@@ -90,10 +102,30 @@ def crawl_home(url):
             _insert_to_mongo(obj)
         return
 
+
+
+
     obj = {"uid": user_id[0]}
+
     if _check_mongo(obj):
         return
     obj['valid'] = '1'
+
+    work_total = '0' if 'TA还没有发布过任何创作' in html else num_regx.findall(parse(html, rules['work_total'])[0])[0]
+    hot = parse(html, rules['hot'])[0]
+    score = parse(html, rules['score'])[0]
+    fans = parse(html, rules['fans'])[0]
+    follow = parse(html, rules['follow'])[0]
+
+
+    obj['stastic'] = {
+                         "hot": int(hot),
+                         "fans": int(fans),
+                         "score": int(score),
+                         "follow": int(follow),
+                         "work_total": int(work_total),
+                     }
+
     _insert_to_mongo(obj)
 
     recent_viwer_url = recent_viwer_url_base % (user_id[0])
@@ -108,6 +140,7 @@ def crawl_infors(url):
      爬取设计师资料页
     """
     html = fetch(url)
+
     infor = {
         "uid": parse(html, rules['user_id'])[0],
         "username": parse(html, rules['user_name'])[0],
@@ -134,10 +167,31 @@ def crawl_infors(url):
             {"twitter": infor_parse(html, "twitter")},
             {"flickr": infor_parse(html, "flickr")},
             {"devlantart": infor_parse(html, "devlantart")},
+            {"personal_website": infor_parse(html, "personal_website")},
         ],
+        "equipment": equipment_etree(html),
+        "personal_lable": personal_lable_etree(html)
+
     }
     _update_mongo(infor)
 
+
+def equipment_etree(html):
+    """
+    个人装备信息提取提取 
+    """
+    if ('个人装备' and '个人标签') in html:
+        return parse(html, rules['equipment_2nd'])
+    elif '个人装备' in html:
+        return parse(html, rules['equipment_1st'])
+    else:
+        return []
+
+def personal_lable_etree(html):
+    """
+    个人标签信息提取提取 
+    """
+    return [] if not '个人标签' in html else parse(html, rules["personal_lable"])
 
 def infor_parse(html, infor):
     return None if not parse(html, rules[infor]) else parse(html, rules[infor])[0].strip()
